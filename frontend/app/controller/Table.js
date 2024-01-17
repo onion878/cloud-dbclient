@@ -28,6 +28,7 @@ Ext.define('OnionSpace.controller.Table', {
     },
     commit: function () {
         const that = this;
+        const columns = that.view.getVisibleColumns().map(r => r.dataIndex).splice(1);
         const params = this.getView().params;
         const store = that.getView().getStore();
         store.getData().items.forEach(d => {
@@ -35,7 +36,7 @@ Ext.define('OnionSpace.controller.Table', {
                 delete d.data['_add'];
                 const keys = [];
                 const values = [];
-                for (let k in d.data) {
+                columns.forEach(k => {
                     keys.push('`' + k + '`');
                     let value = d.data[k];
                     if (value != null && typeof value == 'string') {
@@ -48,7 +49,7 @@ Ext.define('OnionSpace.controller.Table', {
                         value = 'null';
                     }
                     values.push(value);
-                }
+                });
                 this.sqlList.push(`insert into \`${this.getView().params.scheme}\`.\`${this.getView().params.table}\`(${keys.join(',')})
                                    values (${values.join(',')}) `)
             }
