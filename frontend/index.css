@@ -79,3 +79,7 @@
 .item-focus {
     background: var(--bs-info);
 }
+
+.edit-color {
+    background: #BEE6C8;
+}

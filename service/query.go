@@ -8,6 +8,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
+	"net/url"
 	"strconv"
 	"time"
 	"utils"
@@ -173,6 +174,9 @@ func GetAllConnection() []Client {
 	db := utils.GetDB()
 	var clients []Client
 	db.Table("clients").Order("sorted desc").Find(&clients)
+	for i := range clients {
+		clients[i].Pwd = "******"
+	}
 	return clients
 }
 
@@ -244,7 +248,6 @@ func GetData(data map[string]any) interface{} {
 	for i := range columns {
 		colType[columns[i]["COLUMN_NAME"].(string)] = columns[i]["DATA_TYPE"].(string)
 	}
-	//where TABLE_SCHEMA='csc' and DATA_TYPE='bit' order by ORDINAL_POSITION
 	sql := "select * from `" + data["scheme"].(string) + "`.`" + data["table"].(string) + "`"
 	sqlTotal := "select count(0) from `" + data["scheme"].(string) + "`.`" + data["table"].(string) + "`"
 	if len(where) > 0 {
@@ -258,8 +261,12 @@ func GetData(data map[string]any) interface{} {
 	err = db.Raw(sqlTotal).Take(&total).Error
 	for _, row := range list {
 		for k, v := range row {
-			if v != nil && (colType[k] == "datetime" || colType[k] == "timestamp") {
-				row[k] = v.(time.Time).Format("2006-01-02 15:04:05")
+			if v != nil && (colType[k] == "datetime" || colType[k] == "date" || colType[k] == "timestamp") {
+				if colType[k] == "date" {
+					row[k] = v.(time.Time).Format("2006-01-02")
+				} else {
+					row[k] = v.(time.Time).Format("2006-01-02 15:04:05")
+				}
 			} else if v != nil && colType[k] == "bit" {
 				b := []byte(v.(string))
 				c := fmt.Sprint(b)[1:2]
@@ -278,4 +285,91 @@ func GetData(data map[string]any) interface{} {
 		return errors.New("SQL: " + sql + " <br> " + err.Error())
 	}
 	return utils.ReRows(list, total)
+}
+
+func ExecSql(id string, scheme interface{}, sql []interface{}, userId string) interface{} {
+	db := OpenDB(id)
+	var result []interface{}
+	err := db.Connection(func(tx *gorm.DB) error {
+		sche := ""
+		if scheme != nil {
+			sche = scheme.(string)
+			tx.Exec("use `" + sche + "`")
+		}
+		var err error
+		for i := range sql {
+			if err == nil {
+				var r []map[string]interface{}
+				a, _ := utils.Decrypt(sql[i].(string))
+				executed, _ := url.PathUnescape(string(a))
+				println("sql:", executed)
+				tx.AllowGlobalUpdate = true
+				var e error
+				SaveExecHistory(ExecHistory{
+					AccountId: userId,
+					ConId:     id,
+					Scheme:    sche,
+					Sql:       executed,
+				})
+				e = tx.Raw(executed).Scan(&r).Error
+				for _, row := range r {
+					for k, v := range row {
+						if v != nil {
+							switch v.(type) {
+							case time.Time:
+								row[k] = v.(time.Time).Format("2006-01-02 15:04:05")
+							case string:
+								b := []byte(v.(string))
+								c := fmt.Sprint(b)[1:2]
+								if len(v.(string)) == 1 && (c == "1" || c == "0") {
+									if c == "1" {
+										row[k] = true
+									} else {
+										row[k] = false
+									}
+								}
+							default:
+							}
+						}
+					}
+				}
+				if e != nil {
+					out := url.PathEscape("SQL: " + executed + " <br> " + e.Error())
+					err = errors.New(utils.Encrypt([]byte(out)))
+				} else {
+					result = append(result, r)
+				}
+			}
+		}
+		return err
+	})
+	if err != nil {
+		return err
+	}
+	return result
+}
+
+func GetHistory(accountId string) []TabHistory {
+	db := utils.GetDB()
+	var result []TabHistory
+	db.Where("account_id=?", accountId).Find(&result)
+	return result
+}
+
+func GetExecHistory(data map[string]any) []ExecHistory {
+	db := utils.GetDB()
+	var result []ExecHistory
+	start := data["start"].(float64)
+	limit := data["limit"].(float64)
+	db.Where("account_id=? and con_id=?", data["accountId"], data["conId"]).Order("created desc").Limit(int(limit)).Offset(int(start)).Find(&result)
+	return result
+}
+
+func GetSqlRecord(data map[string]any) []SqlRecord {
+	db := utils.GetDB()
+	var result []SqlRecord
+	start := data["start"].(float64)
+	limit := data["limit"].(float64)
+	db.Where("account_id=? and con_id=?", data["accountId"], data["conId"]).Order("created desc").Limit(int(limit)).Offset(int(start)).Find(&result)
+	return result
 }

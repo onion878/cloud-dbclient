@@ -29,3 +29,30 @@ func CreateConnection(client Client) Client {
 	db.Table("clients").Create(client)
 	return client
 }
+
+func SaveHistory(histories []TabHistory, accountId string) error {
+	db := utils.GetDB()
+	for i := range histories {
+		histories[i].Id = utils.NewKeyId()
+	}
+	db.Where("account_id=?", accountId).Delete(&TabHistory{})
+	if len(histories) > 0 {
+		db.Create(histories)
+	}
+	return nil
+}
+
+func SaveExecHistory(histories ExecHistory) {
+	db := utils.GetDB()
+	histories.Id = utils.NewKeyId()
+	histories.Created = LocalTime(time.Now())
+	db.Create(histories)
+}
+
+func SaveSqlRecord(sqlRecord SqlRecord) error {
+	db := utils.GetDB()
+	sqlRecord.Id = utils.NewKeyId()
+	sqlRecord.Created = LocalTime(time.Now())
+	db.Create(sqlRecord)
+	return nil
+}

@@ -25,18 +25,20 @@ Ext.define('OnionSpace.controller.Properties', {
         items.forEach(db => {
             db.childNodes.forEach(scheme => {
                 const child = [];
-                const list = tables[db.data.data.id + '-' + scheme.data.value];
-                if (list && list.length > 0) {
-                    list.forEach(table => {
-                        const c = that.similar(v, table.value);
-                        if (c) {
-                            child.push(table);
-                        }
-                    });
-                }
-                scheme.removeAll();
-                if (child.length > 0) {
-                    scheme.appendChild(child);
+                if (db.data.data) {
+                    const list = tables[db.data.data.id + '-' + scheme.data.value];
+                    if (list && list.length > 0) {
+                        list.forEach(table => {
+                            const c = that.similar(v, table.value);
+                            if (c) {
+                                child.push(table);
+                            }
+                        });
+                    }
+                    scheme.removeAll();
+                    if (child.length > 0) {
+                        scheme.appendChild(child);
+                    }
                 }
             });
         });

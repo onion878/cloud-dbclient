@@ -28,3 +28,44 @@ create table clients
     modify     datetime  default CURRENT_TIMESTAMP on update current_timestamp not null comment '修改时间',
     constraint clients_account_id_fk foreign key (account_id) references accounts (id)
 );
+
+
+create table tab_histories
+(
+    id         varchar(40)  not null comment '唯一标识' primary key,
+    con_name   varchar(200) not null comment '名称',
+    tab_id     varchar(200) null comment '链接标识',
+    con_id     varchar(200) null comment '表标识',
+    mode       varchar(200) not null comment '模块',
+    title      varchar(500) not null comment '标题',
+    data       text         not null comment '数据',
+    icon       varchar(500) not null comment '图标',
+    active     int(1)       not null default 0 comment '当前tab',
+    created    timestamp             default CURRENT_TIMESTAMP null,
+    account_id varchar(40)  not null comment '用户标识',
+    constraint tab_histories_account_id_fk foreign key (account_id) references accounts (id)
+);
+
+create table exec_histories
+(
+    id         varchar(40)                         not null comment '唯一标识' primary key,
+    created    timestamp default CURRENT_TIMESTAMP null,
+    account_id varchar(40)                         not null comment '用户标识',
+    con_id     varchar(200)                        null comment '表标识',
+    scheme     varchar(200)                        null comment '表标识',
+    `sql`      text                                not null comment '数据',
+    constraint exec_histories_account_id_fk foreign key (account_id) references accounts (id)
+);
+
+
+create table sql_records
+(
+    id         varchar(40)                         not null comment '唯一标识' primary key,
+    name       text                                not null comment '名称',
+    created    timestamp default CURRENT_TIMESTAMP null,
+    account_id varchar(40)                         not null comment '用户标识',
+    con_id     varchar(200)                        null comment '表标识',
+    scheme     varchar(200)                        null comment '表标识',
+    `sql`      text                                not null comment '数据',
+    constraint sql_record_account_id_fk foreign key (account_id) references accounts (id)
+);

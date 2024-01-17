@@ -71,21 +71,14 @@ Ext.define('OnionSpace.view.connection.connection', {
                 xtype: 'button', text: '测试连接', handler: function () {
                     const form = this.up('window').down('form');
                     if (form.isValid()) {
-                        Ext.Ajax.request({
-                            url: '/testConnection',
-                            method: 'POST',
-                            jsonData: form.getValues(),
-                            success: function (response) {
-                                const jsonResp = Ext.util.JSON.decode(response.responseText);
-                                if (jsonResp.Message != null) {
-                                    Ext.Msg.alert('错误', jsonResp.Message);
-                                    return;
-                                }
-                                Ext.Msg.alert('正确', '测试成功');
-                            },
-                            failure: function (response, opts) {
+                        post('/testConnection',form.getValues(), function (r) {
+                            const jsonResp = r.response;
+                            if (jsonResp.Message != null) {
+                                Ext.Msg.alert('错误', jsonResp.Message);
+                                return;
                             }
-                        });
+                            Ext.Msg.alert('正确', '测试成功');
+                        })
                     }
                 }
             },

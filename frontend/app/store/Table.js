@@ -1,7 +1,7 @@
 Ext.define('OnionSpace.store.Table', {
     extend: 'Ext.data.Store',
     alias: 'store.Table',
-    pageSize: 500,
+    pageSize: 200,
     proxy: {
         type: 'ajax',
         paramsAsJson: true,

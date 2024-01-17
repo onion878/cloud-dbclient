@@ -1,367 +1,307 @@
-/*
- * File: DateTimePicker.js
- *
- * This file requires use of the Ext JS library, under independent license.
- * This is part of the UX for DateTimeField developed by Guilherme Portela
- */
-
 Ext.define('Ext.ux.DateTimePicker', {
     extend: 'Ext.picker.Date',
     alias: 'widget.datetimepicker',
+
     requires: [
-        'Ext.picker.Date',
-        'Ext.slider.Single',
-        'Ext.form.field.Time',
-        'Ext.form.Label'
+        'Ext.form.field.ComboBox'
     ],
-    // <locale>
-    /**
-     * @cfg {String} todayText
-     * The default text that will be displayed in the calendar to pick the curent date.
-     */
-    todayText: '现在',
-    // </locale>
-    // <locale>
-    /**
-     * @cfg {String} hourText
-     * The default text displayed above the hour slider
-     */
-    hourText: '时',
-    // </locale>
-    // <locale>
-    /**
-     * @cfg {String} minuteText
-     * The default text displayed above the minute slider
-     */
-    minuteText : '分',
-    // </locale>
 
-    /**
-     * @cfg {Object} hourSliderConfig
-     * A config object that will be applied to the hour slider. Any of the config options available for
-     * {@link Ext.slider.Single} can be specified here.
-     */
+    okText: '确定',
+    todayText: '今天',
+    focusable: true,
+    editable: true,
 
-    /**
-     * @cfg {Object} minuteSliderConfig
-     * A config object that will be applied to the minute slider. Any of the config options available for
-     * {@link Ext.slider.Single} can be specified here.
-     */
+    renderTpl: [
+        '<div id="{id}-innerEl" data-ref="innerEl" role="presentation">',
+        '<div class="{baseCls}-header">',
+        '<div id="{id}-prevEl" data-ref="prevEl" class="{baseCls}-prev {baseCls}-arrow" role="presentation" title="{prevText}"></div>',
+        '<div id="{id}-middleBtnEl" data-ref="middleBtnEl" class="{baseCls}-month" role="heading">{%this.renderMonthBtn(values, out)%}</div>',
+        '<div id="{id}-nextEl" data-ref="nextEl" class="{baseCls}-next {baseCls}-arrow" role="presentation" title="{nextText}"></div>',
+        '</div>',
+        '<table role="grid" id="{id}-eventEl" data-ref="eventEl" class="{baseCls}-inner" cellspacing="0" tabindex="0" aria-readonly="true">',
+        '<thead>',
+        '<tr role="row">',
+        '<tpl for="dayNames">',
+        '<th role="columnheader" class="{parent.baseCls}-column-header" aria-label="{.}">',
+        '<div role="presentation" class="{parent.baseCls}-column-header-inner">{.:this.firstInitial}</div>',
+        '</th>',
+        '</tpl>',
+        '</tr>',
+        '</thead>',
+        '<tbody>',
+        '<tr role="row">',
+        '<tpl for="days">',
+        '{#:this.isEndOfWeek}',
+        '<td role="gridcell">',
+        '<div hidefocus="on" class="{parent.baseCls}-date"></div>',
+        '</td>',
+        '</tpl>',
+        '</tr>',
+        '</tbody>',
+        '</table>',
 
-    /**
-     * @cfg {Object} timePickerConfig
-     * A config object that will be applied to the time picker. Any of the config options available for
-     * {@link Ext.panel.Panel} can be specified here.
-     */
+        '<table id="{id}-timeEl" data-ref="timeEl" style="width: auto; margin: 0 0 0 0;" class="x-datepicker-inner sys-timepicker-inner" cellspacing="0">',
+        '<tbody>',
+        '<tr>',
+        '<td>{%this.renderHourBtn(values,out)%}</td>',
+        '<td style="width: 16px; text-align: center; font-weight: bold;">:</td>',
+        '<td>{%this.renderMinuteBtn(values,out)%}</td>',
+        '<td style="width: 16px; text-align: center; font-weight: bold;">:</td>',
+        '<td>{%this.renderSecondBtn(values,out)%}</td>',
+        '</tr>',
+        '</tbody>',
+        '</table>',
 
-    initEvents: function() {
-        var me = this,
-            eDate = Ext.Date,
-            day = eDate.DAY;
 
-        Ext.apply(me.keyNavConfig,{
-            up: function(e) {
-                if (e.ctrlKey) {
-                    if (e.shiftKey) {
-                        me.minuteSlider.setValue(me.minuteSlider.getValue() + 1);
-                    } else {
-                        me.showNextYear();
-                    }
-                } else {
-                    if (e.shiftKey) {
-                        me.hourSlider.setValue(me.hourSlider.getValue() + 1);
-                    } else {
-                        me.update(eDate.add(me.activeDate, day, - 7));
-                    }
-                }
+        '<tpl if="showToday">',
+        '<div id="{id}-footerEl" data-ref="footerEl" role="presentation" class="{baseCls}-footer">{%this.renderOkBtn(values, out)%}{%this.renderTodayBtn(values, out)%}</div>',
+        '</tpl>',
+        // These elements are used with Assistive Technologies such as screen readers
+        '<div id="{id}-todayText" class="' + Ext.baseCSSPrefix + 'hidden-clip">{todayText}.</div>',
+        '<div id="{id}-ariaMinText" class="' + Ext.baseCSSPrefix + 'hidden-clip">{ariaMinText}.</div>',
+        '<div id="{id}-ariaMaxText" class="' + Ext.baseCSSPrefix + 'hidden-clip">{ariaMaxText}.</div>',
+        '<div id="{id}-ariaDisabledDaysText" class="' + Ext.baseCSSPrefix + 'hidden-clip">{ariaDisabledDaysText}.</div>',
+        '<div id="{id}-ariaDisabledDatesText" class="' + Ext.baseCSSPrefix + 'hidden-clip">{ariaDisabledDatesText}.</div>',
+        '</div>',
+        {
+            firstInitial: function (value) {
+                return Ext.picker.Date.prototype.getDayInitial(value);
             },
 
-            down: function(e) {
-                if (e.ctrlKey) {
-                    if (e.shiftKey) {
-                        me.minuteSlider.setValue(me.minuteSlider.getValue() - 1);
-                    } else {
-                        me.showPrevYear();
-                    }
-                } else {
-                    if (e.shiftKey) {
-                        me.hourSlider.setValue(me.hourSlider.getValue() - 1);
-                    } else {
-                        me.update(eDate.add(me.activeDate, day, 7));
-                    }
-                }
+            isEndOfWeek: function (value) {
+                // convert from 1 based index to 0 based
+                // by decrementing value once.
+                value--;
+                var end = value % 7 === 0 && value !== 0;
+                return end ? '</tr><tr role="row">' : '';
+            },
+
+            renderTodayBtn: function (values, out) {
+                Ext.DomHelper.generateMarkup(values.$comp.todayBtn.getRenderTree(), out);
+            },
+
+            renderMonthBtn: function (values, out) {
+                Ext.DomHelper.generateMarkup(values.$comp.monthBtn.getRenderTree(), out);
+            },
+
+            renderHourBtn: function (values, out) {
+                Ext.DomHelper.generateMarkup(values.$comp.hourBtn.getRenderTree(), out);
+            },
+
+            renderMinuteBtn: function (values, out) {
+                Ext.DomHelper.generateMarkup(values.$comp.minuteBtn.getRenderTree(), out);
+            },
+
+            renderSecondBtn: function (values, out) {
+                ;
+                Ext.DomHelper.generateMarkup(values.$comp.secondBtn.getRenderTree(), out);
+            },
+
+            renderOkBtn: function (values, out) {
+                Ext.DomHelper.generateMarkup(values.$comp.okBtn.getRenderTree(), out);
+            }
+        }
+    ],
+
+    beforeRender: function () {
+        var me = this,
+            _$combobox = Ext.form.field.ComboBox,
+            // today = Ext.Date.format(new Date(), me.format),
+            ownerLayout = me.getComponentLayout()
+        ;
+
+        me.hourBtn = new _$combobox({
+            ownerCt: me,
+            ownerLayout: ownerLayout,
+            width: 50,
+            valueField: 'text',
+            store: {
+                fields: ["text"],
+                data: [
+                    {text: "01"}, {text: "02"}, {text: "03"}, {text: "04"}, {text: "05"}, {text: "06"}, {text: "07"}, {text: "08"}, {text: "09"}, {text: "10"},
+                    {text: "11"}, {text: "12"}, {text: "13"}, {text: "14"}, {text: "15"}, {text: "16"}, {text: "17"}, {text: "18"}, {text: "19"}, {text: "20"},
+                    {text: "21"}, {text: "22"}, {text: "23"}, {text: "24"}
+                ]
             }
         });
+
+        me.minuteBtn = new _$combobox({
+            ownerCt: me,
+            ownerLayout: ownerLayout,
+            width: 50,
+            valueField: 'text',
+            store: {
+                fields: ["text"],
+                data: [
+                    {text: "00"}, {text: "01"}, {text: "02"}, {text: "03"}, {text: "04"}, {text: "05"}, {text: "06"}, {text: "07"}, {text: "08"}, {text: "09"},
+                    {text: "10"}, {text: "11"}, {text: "12"}, {text: "13"}, {text: "14"}, {text: "15"}, {text: "16"}, {text: "17"}, {text: "18"}, {text: "19"},
+                    {text: "20"}, {text: "21"}, {text: "22"}, {text: "23"}, {text: "24"}, {text: "25"}, {text: "26"}, {text: "27"}, {text: "28"}, {text: "29"},
+                    {text: "30"}, {text: "31"}, {text: "32"}, {text: "33"}, {text: "34"}, {text: "35"}, {text: "36"}, {text: "37"}, {text: "38"}, {text: "39"},
+                    {text: "40"}, {text: "41"}, {text: "42"}, {text: "43"}, {text: "44"}, {text: "45"}, {text: "46"}, {text: "47"}, {text: "48"}, {text: "49"},
+                    {text: "50"}, {text: "51"}, {text: "52"}, {text: "53"}, {text: "54"}, {text: "55"}, {text: "56"}, {text: "57"}, {text: "58"}, {text: "59"}
+                ]
+            }
+        });
+
+        me.secondBtn = new _$combobox({
+            ownerCt: me,
+            ownerLayout: ownerLayout,
+            width: 50,
+            valueField: 'text',
+            store: {
+                fields: ["text"],
+                data: [
+                    {text: "00"}, {text: "01"}, {text: "02"}, {text: "03"}, {text: "04"}, {text: "05"}, {text: "06"}, {text: "07"}, {text: "08"}, {text: "09"},
+                    {text: "10"}, {text: "11"}, {text: "12"}, {text: "13"}, {text: "14"}, {text: "15"}, {text: "16"}, {text: "17"}, {text: "18"}, {text: "19"},
+                    {text: "20"}, {text: "21"}, {text: "22"}, {text: "23"}, {text: "24"}, {text: "25"}, {text: "26"}, {text: "27"}, {text: "28"}, {text: "29"},
+                    {text: "30"}, {text: "31"}, {text: "32"}, {text: "33"}, {text: "34"}, {text: "35"}, {text: "36"}, {text: "37"}, {text: "38"}, {text: "39"},
+                    {text: "40"}, {text: "41"}, {text: "42"}, {text: "43"}, {text: "44"}, {text: "45"}, {text: "46"}, {text: "47"}, {text: "48"}, {text: "49"},
+                    {text: "50"}, {text: "51"}, {text: "52"}, {text: "53"}, {text: "54"}, {text: "55"}, {text: "56"}, {text: "57"}, {text: "58"}, {text: "59"}
+                ]
+            }
+        });
+
+        me.okBtn = new Ext.button.Button({
+            ui: me.footerButtonUI,
+            ownerCt: me,
+            ownerLayout: ownerLayout,
+            text: me.okText,
+            tooltipType: 'title',
+            tabIndex: -1,
+            ariaRole: 'presentation',
+            handler: me.okHandler,
+            scope: me
+        });
+
         me.callParent();
+    },
+
+    privates: {
+        finishRenderChildren: function () {
+            var me = this;
+            me.callParent(arguments);
+
+            me.hourBtn.finishRender();
+            me.minuteBtn.finishRender();
+            me.secondBtn.finishRender();
+            me.okBtn.finishRender();
+        }
+    },
+
+    okHandler: function () {
+        var me = this, btn = me.okBtn;
+
+        if (btn && !btn.disabled) {
+            me.setValue(this.getValue());
+            me.fireEvent('select', me, me.value);
+            me.onSelect();
+        }
+
+        return me;
+    },
+
+    selectedUpdate: function (date) {
+        this.callParent([Ext.Date.clearTime(date, true)]);
+    },
+
+    update: function (date, forceRefresh) {
+        var me = this;
+        var hours = date.getHours();
+        if (hours < 10) {
+            hours = "0" + hours;
+        }
+        me.hourBtn.setValue(hours);
+        var minutes = date.getMinutes();
+        if (minutes < 10) {
+            minutes = "0" + minutes;
+        }
+        me.minuteBtn.setValue(minutes);
+        var seconds = date.getSeconds();
+        if (seconds < 10) {
+            seconds = "0" + seconds;
+        }
+        me.secondBtn.setValue(seconds);
+
+        return this.callParent(arguments);
+    },
+
+    setValue: function (date, isFixed) {
+        var me = this;
+
+        if (isFixed !== true) {
+            
+            date.setHours(me.hourBtn.getValue());
+            date.setMinutes(me.minuteBtn.getValue());
+            date.setSeconds(me.secondBtn.getValue());
+        }
+        ;
+        me.value = date;
+        me.update(me.value);
+        return me;
     },
 
     initComponent: function() {
         var me = this,
-            dtAux;
-
-        if (typeof me.value === 'string') {
-            me.value = Ext.Date.parse(me.value, me.format);
-        } else if (!me.value) {
-            me.value = new Date();
-        }
-
-        dtAux = me.value;
-
-        dtAux.setSeconds(0);
-
-        me.timeFormat = me.format.indexOf("h") !== -1 ? 'h' : 'H';
-        me.hourSlider = new Ext.slider.Single(Ext.Object.merge({
-            fieldLabel: me.hourText,
-            labelAlign: 'top',
-            labelSeparator: ' ',
-            padding: '0 0 10 17',
-            focusable : false,
-            value: 0,
-            minValue: 0,
-            maxValue: 23,
-            vertical: true,
-            tipText: function(thumb){
-                var value = thumb.value;
-
-                if (me.timeFormat === 'H') {
-                    return value || '0';
-                } else {
-                    return (value && value - 12 <= 0) ? value : Math.abs(value - 12);
-                }
-            }
-        }, me.hourSliderConfig));
-
-        me.minuteSlider = new Ext.slider.Single(Ext.Object.merge({
-            fieldLabel: me.minuteText,
-            labelAlign: 'top',
-            labelSeparator: ' ',
-            padding: '0 10 10 0',
-            focusable : false,
-            value: 0,
-            increment: 1,
-            minValue: 0,
-            maxValue: 59,
-            vertical: true
-        }, me.minuteSliderConfig));
-
-        me.timePicker = new Ext.panel.Panel(Ext.Object.merge({
-            layout: {
-                type: 'hbox',
-                align: 'stretch'
-            },
-            border: false,
-            defaults: {
-                flex: 1
-            },
-            width: 130,
-            floating: true,
-            dockedItems: [{
-                xtype: 'toolbar',
-                dock: 'top',
-                ui: 'footer',
-                items: [
-                    '->', {
-                        xtype: 'label',
-                        text: me.timeFormat == 'h' ? '12:00 AM' : '00:00'
-                    },
-                    '->'
-                ]
-            }],
-            items: [me.hourSlider, me.minuteSlider],
-            onMouseDown: function(e) {
-                e.preventDefault();
-            }
-        }, me.timePickerConfig));
+            value = me.value;
 
         me.callParent();
-        me.ownerCt = me.up('[floating]');
-        me.timePicker.ownerCt = me.ownerCt;
-        me.registerWithOwnerCt();
-        me.timePicker.registerWithOwnerCt();
-        me.setValue(new Date(dtAux));
-        me.hourSlider.addListener('change', me.changeTimeValue, me);
-        me.minuteSlider.addListener('change', me.changeTimeValue, me);
+
+        me.value = value || new Date();
     },
 
-    handleTabClick: function (e) {
-        this.handleDateClick(e, this.activeCell.firstChild, true);
-    },
-
-    getSelectedDate: function (date) {
-        var me = this,
-            t = Ext.Date.clearTime(date,true).getTime(),
-            cells = me.cells,
-            cls = me.selectedCls,
-            cellItems = cells.elements,
-            cLen = cellItems.length,
-            cell, c;
-
-        cells.removeCls(cls);
-
-        for (c = 0; c < cLen; c++) {
-            cell = cellItems[c].firstChild;
-            if (cell.dateValue === t) {
-                return cell;
-            }
-        }
-        return null;
-    },
-
-    changeTimeValue: function(slider) {
-        var me = this,
-            label = me.timePicker.down('label'),
-            minutePrefix = me.minuteSlider.getValue() < 10 ? '0' : '',
-            hourDisplay = me.hourSlider.getValue(),
-            pickerValue, hourPrefix, timeSufix, auxValue;
-
-        if (me.timeFormat == 'h') {
-            timeSufix = me.hourSlider.getValue() < 12 ? ' AM' : ' PM';
-            hourDisplay = me.hourSlider.getValue() < 13 ? hourDisplay : hourDisplay - 12;
-            hourDisplay = hourDisplay || '12';
-        }
-
-        hourPrefix = hourDisplay < 10 ? '0' : '';
-
-        label.setText(hourPrefix + hourDisplay + ':' + minutePrefix + me.minuteSlider.getValue() + (timeSufix || ''));
-
-        if (me.pickerField && (pickerValue = me.pickerField.getValue())) {
-            auxValue = new Date(pickerValue[slider == me.hourSlider ? 'setHours' : 'setMinutes'](slider.getValue()));
-            me.pickerField.setValue(auxValue);
-            me.pickerField.fireEvent('select', me.pickerField, auxValue);
-        }
-    },
-
-    afterShow: function(animateTarget, callback, scope) {
-        var me = this,
-            timePickerToolbarEl, backgroundColor;
-
-        me.callParent([animateTarget, callback, scope]);
-        me.timePicker.show();
-
-        // this is a workaround for the classic theme, where the time
-        // panel would have a transparent background with the classic theme.
-        timePickerToolbarEl = me.timePicker.down('toolbar').getEl();
-        backgroundColor = timePickerToolbarEl.getStyle('background-color');
-        if (backgroundColor == 'transparent') {
-            timePickerToolbarEl.setStyle('background-color', timePickerToolbarEl.getStyle('border-color'));
-        }
-    },
-
-    afterSetPosition: function(x, y) {
-        this.callParent([x, y]);
-        this.alignTimePicker();
-    },
-
-    alignTimePicker: function() {
-        var me = this,
-            el = me.el,
-            alignTo = me.getTimePickerSide(),
-            xPos = alignTo == 'tl' ? (-1 * me.timePicker.getWidth() - 5) : 5;
-
-        me.timePicker.setHeight(el.getHeight());
-        me.timePicker.showBy(me, alignTo, [xPos, 0]);
-    },
-
-    onHide: function() {
-        var me = this;
-        me.timePicker.hide();
-        me.callParent();
-    },
-
-    beforeDestroy: function() {
+    doDestroy: function () {
         var me = this;
 
         if (me.rendered) {
             Ext.destroy(
-                me.timePicker,
-                me.minuteSlider,
-                me.hourSlider
+                me.hourBtn,
+                me.minuteBtn,
+                me.secondBtn,
+                me.okBtn
             );
         }
+
+        me.callParent(arguments);
+    },
+    // @private
+    // @inheritdoc
+    beforeDestroy: function () {
+        var me = this;
+
+        if (me.rendered) {
+            Ext.destroy(
+                me.hourBtn,
+                me.minuteBtn,
+                me.secondBtn,
+                me.okBtn
+            );
+        }
+
         me.callParent();
     },
 
-    getTimePickerSide: function() {
-        var el = this.el,
-            body = Ext.getBody(),
-            bodyWidth = body.getViewSize().width;
+    handleDateClick: function (e, t) {
+        var me = this, handler = me.handler;
 
-        return (bodyWidth < (el.getX() + el.getWidth() + 140)) ? 'tl' : 'tr';
-    },
-
-    setValue: function(value) {
-        value = value || new Date();
-
-        value.setSeconds(0);
-        this.value = new Date(value);
-        return this.update(this.value);
-    },
-
-    selectToday: function() {
-        var me = this,
-            btn = me.todayBtn,
-            handler = me.handler,
-            auxDate = new Date();
-
-        if (btn && !btn.disabled) {
-            me.setValue(new Date(auxDate.setSeconds(0)));
-            me.fireEvent('select', me, me.value);
-            if (handler) {
-                handler.call(me.scope || me, me, me.value);
-            }
-            me.onSelect();
-        }
-        return me;
-    },
-
-    handleDateClick: function(e, t, /*private*/ blockStopEvent) {
-        var me = this,
-            handler = me.handler,
-            hourSet = me.timePicker.items.items[0].getValue(),
-            minuteSet = me.timePicker.items.items[1].getValue(),
-            auxDate = new Date(t.dateValue);
-
-        if(blockStopEvent !== true) {
-            e.stopEvent();
-        }
+        e.stopEvent();
 
         if (!me.disabled && t.dateValue && !Ext.fly(t.parentNode).hasCls(me.disabledCellCls)) {
             me.doCancelFocus = me.focusOnSelect === false;
-            auxDate.setHours(hourSet, minuteSet, 0);
-            me.setValue(new Date(auxDate));
+            me.setValue(new Date(t.dateValue));
             delete me.doCancelFocus;
+
+            // by pass on select to keep the window open
             me.fireEvent('select', me, me.value);
             if (handler) {
                 handler.call(me.scope || me, me, me.value);
             }
+            // event handling is turned off on hide
+            // when we are using the picker in a field
+            // therefore onSelect comes AFTER the select
+            // event.
             me.onSelect();
-        }
-    },
 
-    selectedUpdate: function(date) {
-        var me = this,
-            dateOnly = Ext.Date.clearTime(date, true);
-
-        this.callParent([dateOnly]);
-        me.updateSliders();
-
-    },
-
-    fullUpdate: function(date) {
-        var me = this,
-            dateOnly = Ext.Date.clearTime(date, true);
-
-        this.callParent([dateOnly]);
-        me.updateSliders();
-    },
-
-    updateSliders: function() {
-        var me = this,
-            currentDate = (me.pickerField && me.pickerField.getValue()) || new Date();
-
-        if (me.timePicker.rendered) {
-            me.hourSlider.setValue(currentDate.getHours());
-            me.minuteSlider.setValue(currentDate.getMinutes());
         }
     }
+
 });

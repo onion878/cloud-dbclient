@@ -56,6 +56,38 @@ type Client struct {
 	Created   LocalTime `json:"created"`
 }
 
+type TabHistory struct {
+	Id        string `json:"id"`
+	ConName   string `json:"conName"`
+	TabId     string `json:"tabId"`
+	ConId     string `json:"conId"`
+	Mode      string `json:"mode"`
+	Title     string `json:"title"`
+	Data      string `json:'data'`
+	Icon      string `json:'icon'`
+	Active    bool   `json:"active"`
+	AccountId string `json:"accountId"`
+}
+
+type ExecHistory struct {
+	Id        string    `json:"id"`
+	AccountId string    `json:"accountId"`
+	ConId     string    `json:"conId"`
+	Scheme    string    `json:"scheme"`
+	Sql       string    `json:"sql"`
+	Created   LocalTime `json:"created"`
+}
+
+type SqlRecord struct {
+	Id        string    `json:"id"`
+	Name      string    `json:"name"`
+	AccountId string    `json:"accountId"`
+	ConId     string    `json:"conId"`
+	Scheme    string    `json:"scheme"`
+	Sql       string    `json:"sql"`
+	Created   LocalTime `json:"created"`
+}
+
 type CrudBaseApiConfig struct {
 	Id       string    `json:'id'`
 	Name     string    `json:'name'`

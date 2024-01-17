@@ -13,6 +13,7 @@ Ext.define('OnionSpace.view.properties.properties', {
             tables: {}
         }
     },
+    useArrows: true,
     closable: false,
     rootVisible: false,
     hideCollapseTool: true,
@@ -110,18 +111,18 @@ Ext.define('OnionSpace.view.properties.properties', {
                 })
             }
         },
-        itemcontextmenu: function (node, record, item, index, event, eOpts) {
+        itemcontextmenu: function (node, record, item, index, event) {
             event.preventDefault();
-            new Ext.menu.Menu({
-                minWidth: 60,
-                items: [{
-                    text: '删除',
-                    iconCls: 'x-fa fa-list',
-                    handler: function () {
-
-                    }
-                }]
-            }).showAt(event.getPoint());
+            // new Ext.menu.Menu({
+            //     minWidth: 60,
+            //     items: [{
+            //         text: '设置NULL',
+            //         iconCls: 'x-fa fa-list',
+            //         handler: function () {
+            //
+            //         }
+            //     }]
+            // }).showAt(event.getPoint());
         }
     },
     tbar: [
@@ -132,8 +133,7 @@ Ext.define('OnionSpace.view.properties.properties', {
             items: [
                 {
                     xtype: 'textfield', flex: 1, emptyText: '搜索表', bind: '{search}', listeners: {
-                        specialkey: 'search',
-                        change: 'showSearch'
+                        specialkey: 'search'
                     },
                 },
                 {
@@ -148,33 +148,27 @@ Ext.define('OnionSpace.view.properties.properties', {
     },
     reload: function () {
         const that = this;
-        Ext.Ajax.request({
-            url: '/getAllConnection',
-            method: 'GET',
-            success: function (response) {
-                const {data} = Ext.util.JSON.decode(response.responseText);
-                const list = [];
-                data.forEach(d => {
-                    if (d.color == 'ff0000') {
-                        d.color = null;
-                    }
-                    list.push({
-                        text: `<span style="color: #${d.color};">${d.name}</span>`,
-                        type: 'db',
-                        icon: '/images/mysql.svg',
-                        qtitle: d.name,
-                        qtip: `${d.host}:${d.port}`,
-                        data: d
-                    })
-                });
-                that.store.setRoot({
-                    text: '',
-                    expanded: true,
-                    children: list
-                });
-            },
-            failure: function (response, opts) {
-            }
-        });
+        get('/getAllConnection', function (r) {
+            const {data} = r.response;
+            const list = [];
+            data.forEach(d => {
+                if (d.color == 'ff0000') {
+                    d.color = null;
+                }
+                list.push({
+                    text: `<span style="color: #${d.color};">${d.name}</span>`,
+                    type: 'db',
+                    icon: '/images/mysql.svg',
+                    qtitle: d.name,
+                    qtip: `${d.host}:${d.port}`,
+                    data: d
+                })
+            });
+            that.store.setRoot({
+                text: '',
+                expanded: true,
+                children: list
+            });
+        })
     }
 });

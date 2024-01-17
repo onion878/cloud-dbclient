@@ -1,17 +1,23 @@
 package main
 
 import (
+	"embed"
 	b64 "encoding/base64"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/basicauth"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/timeout"
 	"golang.org/x/crypto/bcrypt"
+	"net/url"
 	"reflect"
 	"service"
 	"time"
 	"utils"
 )
+
+//go:embed frontend/*
+var frontend embed.FS
 
 var nowUser service.Account
 
@@ -123,6 +129,68 @@ func main() {
 		return c.Send(r.([]byte))
 	})
 
+	app.Post("/execSql", timeout.New(func(c *fiber.Ctx) error {
+		var a map[string]any
+		c.BodyParser(&a)
+		r := service.ExecSql(a["id"].(string), a["scheme"], a["sql"].([]interface{}), nowUser.Id)
+		if reflect.TypeOf(r).String() == "*errors.errorString" {
+			return c.JSON(map[string]interface{}{
+				"success": false,
+				"data":    r.(error).Error(),
+				"time":    time.Now(),
+			})
+		}
+		return c.Send(utils.ReData(r))
+	}, time.Minute*20))
+
+	app.Post("/saveHistory", func(c *fiber.Ctx) error {
+		var a []service.TabHistory
+		c.BodyParser(&a)
+		for i := range a {
+			a[i].AccountId = nowUser.Id
+		}
+		return c.Send(utils.ReData(service.SaveHistory(a, nowUser.Id)))
+	})
+
+	app.Get("/getHistory", func(c *fiber.Ctx) error {
+		return c.Send(utils.ReData(service.GetHistory(nowUser.Id)))
+	})
+
+	app.Post("/saveExecHistory", func(c *fiber.Ctx) error {
+		var a service.ExecHistory
+		c.BodyParser(&a)
+		a.AccountId = nowUser.Id
+		a1, _ := utils.Decrypt(a.Sql)
+		executed, _ := url.PathUnescape(string(a1))
+		a.Sql = executed
+		service.SaveExecHistory(a)
+		return c.Send(utils.ReData(nil))
+	})
+
+	app.Post("/getExecHistory", func(c *fiber.Ctx) error {
+		var a map[string]any
+		c.BodyParser(&a)
+		a["accountId"] = nowUser.Id
+		return c.Send(utils.ReData(service.GetExecHistory(a)))
+	})
+
+	app.Post("/saveSqlRecord", func(c *fiber.Ctx) error {
+		var a service.SqlRecord
+		c.BodyParser(&a)
+		a.AccountId = nowUser.Id
+		a1, _ := utils.Decrypt(a.Sql)
+		executed, _ := url.PathUnescape(string(a1))
+		a.Sql = executed
+		return c.Send(utils.ReData(service.SaveSqlRecord(a)))
+	})
+
+	app.Post("/getSqlRecord", func(c *fiber.Ctx) error {
+		var a map[string]any
+		c.BodyParser(&a)
+		a["accountId"] = nowUser.Id
+		return c.Send(utils.ReData(service.GetSqlRecord(a)))
+	})
+
 	app.Get("/getInfo/:code", func(c *fiber.Ctx) error {
 		return c.JSON(service.GetSystemInfo(c.Params("code")))
 	})
@@ -171,6 +239,6 @@ func main() {
 }
 
 func test() {
-	accounts := service.Account{Name: "洋葱", Username: "onion", Password: "123456", Email: "2419186601@qq.com", AdminFlag: true}
+	accounts := service.Account{Name: "洋葱", Username: "onion", Password: "a1314a", Email: "2419186601@qq.com", AdminFlag: true}
 	service.CreateAccount(accounts)
 }

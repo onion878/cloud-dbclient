@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"github.com/axgle/mahonia"
 	uuid "github.com/satori/go.uuid"
@@ -16,8 +17,8 @@ import (
 )
 
 // RandomString RandomString(8, "A") 大写
-//RandomString(8, "a0") 小写
-//RandomString(20, "Aa0") 混合
+// RandomString(8, "a0") 小写
+// RandomString(20, "Aa0") 混合
 func RandomString(randLength int, randType string) (result string) {
 	var num = "0123456789"
 	var lower = "abcdefghijklmnopqrstuvwxyz"
@@ -132,4 +133,12 @@ func ReRows(data interface{}, total int64) []byte {
 	})
 
 	return byte
+}
+
+func Decrypt(s string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(s[1 : len(s)-1])
+}
+
+func Encrypt(s []byte) string {
+	return "a" + base64.StdEncoding.EncodeToString(s) + "a"
 }
